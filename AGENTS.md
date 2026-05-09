@@ -205,6 +205,14 @@ deploy/*.sh 必须：
 * GitHub Secrets
 * Environment Secrets
 
+环境变量注入规范（强制）：
+
+* 禁止使用单个 Secret 存储“完整 `.env` 文件内容”。
+* 必须使用 **Environment 级别 Secrets**（staging / production 分开管理）。
+* 每个 Secret 只允许对应一个字段（例如：`STAGING_PORT`、`PROD_PORT`、`DB_URL`）。
+* workflow 中按字段逐个注入到 `deploy/*.sh` 所需 env 文件，禁止整文件覆盖式写入。
+* 新增环境变量时，必须同步更新 `env/*.env.example` 与文档说明。
+
 禁止：
 
 * 明文密码进入仓库
