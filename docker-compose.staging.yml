@@ -1,0 +1,7 @@
+services:
+  web:
+    image: ${IMAGE_REPO}:${IMAGE_TAG}
+    container_name: ai-template-staging-web
+    restart: unless-stopped
+    ports:
+      - "80:80"
