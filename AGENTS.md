@@ -263,6 +263,7 @@ AI Agent 在执行任务时：
 * 优先保持可回滚
 * 优先保持结构清晰
 * 优先最小化修改
+* 所有 AI 生成内容默认使用中文输出，除非明确要求英文或技术字段必须英文
 
 修改前应：
 
@@ -325,3 +326,15 @@ chore: 调整 docker compose 结构
 * GitOps workflow
 
 形成完整 AI DevOps 闭环。
+
+
+---
+
+# 基础设施极简模型
+
+- 仅允许 `SERVERS` + `ROOT_SSH_KEY`
+- `SERVERS` 仅用于 bootstrap 阶段
+- `ROOT_SSH_KEY` 仅用于 bootstrap 阶段
+- deploy 阶段禁止使用 root key
+- environment 必须严格隔离
+- bootstrap 必须 workflow_dispatch 手动触发
