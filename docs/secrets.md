@@ -1,47 +1,25 @@
 # Secrets Parameters
 
-本文档说明当前仓库在 GitHub Environments 中需要配置的参数（`staging` / `production`）。
+本文档说明 GitHub Environments（`staging` / `production`）的最小化必需配置。
 
-## 配置原则
+## 最小化 Secrets（每个环境都要有）
 
-- 所有运行参数都来自 GitHub Environment Variables / Secrets。
-- 参数必须按环境隔离保存，禁止跨环境直接复用引用。
-- `SERVERS` 使用 **Environment Variable**（便于审计服务器 IP 列表）。
-- SSH 密钥使用 **Environment Secret**。
+- `SERVERS`：逗号分隔服务器列表（示例：`10.0.0.1,10.0.0.2`）
+- `ROOT_SSH_KEY`：仅 Bootstrap 使用的 root 私钥
+- `DEPLOY_SSH_KEY`：Deploy 用户私钥（Bootstrap 会动态导出公钥写入 authorized_keys）
 
-## bootstrap-server.yml（高权限，手动触发）
+> 两个环境必须分别配置，不允许跨环境共享引用。
 
-目标 workflow：`.github/workflows/bootstrap-server.yml`
+## Bootstrap Workflow
 
-每个 Environment（staging / production）都需要配置：
+目标：`.github/workflows/bootstrap-server.yml`
 
-- Variable: `SERVERS`
-  - 说明：逗号分隔服务器 IP 列表
-  - 示例：`10.0.0.1,10.0.0.2`
-- Secret: `ROOT_SSH_KEY`
-  - 说明：仅 bootstrap 阶段使用的 root SSH 私钥
-- Secret: `DEPLOY_SSH_KEY`
-  - 说明：deploy 用户公钥，bootstrap 时写入 `/home/deploy/.ssh/authorized_keys`
+- 仅 `workflow_dispatch` 手动触发
+- 可选择 `staging` / `production`
+- 根据所选 environment 自动读取对应 secrets
+- 自动解析 `SERVERS` 并循环初始化全部服务器
 
-说明：
+## Deploy Workflows
 
-- 该 workflow 仅用于服务器初始化，不参与日常 deploy。
-- 即使 staging / production 使用相同 key，也必须分别配置在各自 environment 中。
-
-
-补充：
-
-- workflow 可以在运行时生成临时 env 文件（例如 `.runtime/production.env`），用于传递 `docker compose --env-file` 所需参数。
-- 临时 env 文件内容必须来自 GitHub Environment Secrets / Variables，且不得提交到仓库。
-
-## production-deploy.yml（低权限 + 人工审批）
-
-目标 workflow：`.github/workflows/production-deploy.yml`
-
-- 保持 `environment: production` 审批机制。
-- 生产参数继续按该 workflow 当前定义的 secrets 配置。
-
-## 当前阶段说明
-
-- 当前阶段仅保留初始化服务器工作流（`bootstrap-server`）。
-- staging 自动部署工作流已暂时下线。
+- staging：`.github/workflows/deploy.yml`（`push develop` 自动触发）
+- production：`.github/workflows/production-deploy.yml`（`push main`，依赖 environment approval）
