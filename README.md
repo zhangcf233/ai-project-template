@@ -2,46 +2,47 @@
 
 ## 极简基础设施模型
 
-本仓库采用极简 bootstrap 配置模型，仅使用两个 environment secrets：
+本仓库采用极简、安全配置模型，环境级仅允许以下 3 个 Secrets：
 
-- `SERVERS`：Environment Variable（逗号分隔服务器列表，如 `"10.0.0.1,10.0.0.2"`）
-- `ROOT_SSH_KEY`：Environment Secret，仅用于 bootstrap 的 root SSH 私钥
+- `SERVERS`：逗号分隔服务器列表，例如 `10.0.0.1,10.0.0.2`
+- `ROOT_SSH_KEY`：仅用于 Bootstrap 的 root 私钥
+- `DEPLOY_SSH_KEY`：用于 Deploy 用户连接与 Bootstrap 自动导出公钥
 
-> 两个环境 `staging` 与 `production` 必须分别配置独立的 `SERVERS` 和 `ROOT_SSH_KEY`，严禁跨环境复用。
+> `staging` 与 `production` 必须分别在 GitHub Environments 中独立配置，严禁跨环境复用。
 
-## Bootstrap 与 Deploy 边界
+## Bootstrap 说明
 
-- **Bootstrap（高权限）**：仅人工 `workflow_dispatch` 触发，使用 root key 做初始化。
-- **Deploy（低权限）**：仅使用 `deploy` 用户执行日常自动部署，不允许 root key 参与。
+- Workflow：`.github/workflows/bootstrap-server.yml`
+- 触发方式：`workflow_dispatch`（仅手动触发）
+- 环境选择：`staging` / `production`
+- 脚本入口：`scripts/bootstrap-server.sh`（内部转发到 `deploy/bootstrap_server.sh`）
 
-## Workflows
+Bootstrap 会按 `SERVERS` 自动循环执行，并完成：
 
-- `.github/workflows/bootstrap-server.yml`
-  - 手动触发
-  - 选择 `staging` / `production`
-  - 从对应 GitHub Environment 读取 `SERVERS` + `ROOT_SSH_KEY`
-  - 执行 `deploy/bootstrap_server.sh` 初始化多台服务器
+- 初始化 `deploy` 用户
+- 写入 `/home/deploy/.ssh/authorized_keys`（追加 + 去重，不覆盖）
+- 由 `DEPLOY_SSH_KEY` 动态导出公钥（`ssh-keygen -y`）
+- 安装 Docker 与 docker compose plugin
+- 初始化 `/opt/apps/<repo-name>/deploy-state`
+- 验证 `su - deploy -c "docker compose version"`
 
-- `.github/workflows/production-deploy.yml`
-  - `main` 触发
-  - 依赖 `environment: production` 的人工审批保护
+## Deploy 架构说明
 
-## 安全模型
+- `develop` 分支：触发 `.github/workflows/deploy.yml` 自动部署到 staging
+- `main` 分支：触发 `.github/workflows/production-deploy.yml`，使用 production environment 审批保护
 
-- root key 仅用于 bootstrap，不参与 deploy。
-- deploy 阶段禁止 root SSH。
-- 不删除 volume，不做破坏性清理。
-- 镜像统一 GHCR。
-- 环境变量来自 GitHub Secrets / Environment Secrets，且不使用“完整 env 文本”单密钥模式。
+部署镜像统一使用 GHCR：`ghcr.io/<owner>/ai-project-template:<git-sha>`。
 
+## 安全模型说明
 
-## 参数配置说明
+- **Bootstrap vs Deploy 强隔离**：
+  - Bootstrap 允许 root，仅用于初始化
+  - Deploy 仅允许 deploy 用户，禁止 root deploy
+- **Environment Isolation**：
+  - staging / production 独立 Secrets
+  - workflow 通过 `environment:` 读取对应环境密钥
+- **回滚能力**：
+  - 保留 `deploy-state/current_tag` 与 `deploy-state/previous_tag`
+  - 可通过 `deploy/rollback.sh` 执行 tag 回滚
 
-已移除 `env/*.env.example` 示例文件，统一改为文档维护参数清单：`docs/secrets.md`。
-
-- staging environment 内推荐使用无前缀 secret 命名（如 `SERVER_HOST`、`APP_PORT`）。
-
-
-> 当前阶段：暂时仅保留初始化服务器工作流（bootstrap-server），staging 自动部署工作流已下线。
-
-- `DEPLOY_SSH_PUBLIC_KEY`：Environment Secret，deploy 用户公钥（bootstrap 会写入 authorized_keys）。
+更多参数说明见：`docs/secrets.md`。

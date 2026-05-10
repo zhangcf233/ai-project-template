@@ -345,3 +345,41 @@ chore: 调整 docker compose 结构
 - deploy 阶段禁止使用 root key
 - environment 必须严格隔离
 - bootstrap 必须 workflow_dispatch 手动触发
+
+---
+
+# AI DevOps 安全规则（新增）
+
+## Bootstrap
+
+- 属于高权限操作。
+- 必须人工触发（`workflow_dispatch`）。
+- 禁止自动执行 bootstrap。
+
+## Deploy
+
+- 仅允许 `deploy` 用户执行。
+- 允许自动化 CI/CD。
+- 禁止 root 参与日常 deploy。
+
+## Environment
+
+- `staging` / `production` 必须强隔离。
+- 禁止跨环境 deploy 与跨环境读取 secrets。
+
+## Secrets 极简规则
+
+仅允许以下字段作为环境级核心密钥：
+
+- `SERVERS`
+- `ROOT_SSH_KEY`
+- `DEPLOY_SSH_KEY`
+
+## Language
+
+以下默认使用中文：
+
+- PR 描述
+- README 文档
+- 注释
+- workflow 说明
