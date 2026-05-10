@@ -19,8 +19,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Bootstrap servers
         env:
-          SERVERS: ${{ vars.SERVERS }}
+          SERVERS: ${{ secrets.SERVERS }}
           ROOT_SSH_KEY: ${{ secrets.ROOT_SSH_KEY }}
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
           ENV_NAME: ${{ inputs.environment }}
-        run: bash deploy/bootstrap_server.sh "$SERVERS" "$ROOT_SSH_KEY" "$DEPLOY_SSH_KEY" "$ENV_NAME" "${{ github.event.repository.name }}"
+        run: bash scripts/bootstrap-server.sh "$SERVERS" "$ROOT_SSH_KEY" "$DEPLOY_SSH_KEY" "$ENV_NAME" "${{ github.event.repository.name }}"
