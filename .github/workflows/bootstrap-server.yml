@@ -17,6 +17,27 @@ jobs:
     environment: ${{ inputs.environment }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Validate required secrets
+        env:
+          SERVERS: ${{ secrets.SERVERS }}
+          ROOT_SSH_KEY: ${{ secrets.ROOT_SSH_KEY }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          ENV_NAME: ${{ inputs.environment }}
+        run: |
+          set -euo pipefail
+          missing=()
+
+          [[ -n "${SERVERS//[[:space:]]/}" ]] || missing+=("SERVERS")
+          [[ -n "${ROOT_SSH_KEY//[[:space:]]/}" ]] || missing+=("ROOT_SSH_KEY")
+          [[ -n "${DEPLOY_SSH_KEY//[[:space:]]/}" ]] || missing+=("DEPLOY_SSH_KEY")
+
+          if (( ${#missing[@]} > 0 )); then
+            echo "::error::${ENV_NAME} 环境缺少 Secrets: ${missing[*]}"
+            echo "请在 GitHub -> Settings -> Environments -> ${ENV_NAME} 中按字段配置 Secrets（one secret per key）。"
+            exit 1
+          fi
+
       - name: Bootstrap servers
         env:
           SERVERS: ${{ secrets.SERVERS }}
