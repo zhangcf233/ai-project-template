@@ -20,13 +20,19 @@
   - 示例：`10.0.0.1,10.0.0.2`
 - Secret: `ROOT_SSH_KEY`
   - 说明：仅 bootstrap 阶段使用的 root SSH 私钥
-- Secret: `DEPLOY_SSH_PUBLIC_KEY`
+- Secret: `DEPLOY_SSH_KEY`
   - 说明：deploy 用户公钥，bootstrap 时写入 `/home/deploy/.ssh/authorized_keys`
 
 说明：
 
 - 该 workflow 仅用于服务器初始化，不参与日常 deploy。
 - 即使 staging / production 使用相同 key，也必须分别配置在各自 environment 中。
+
+
+补充：
+
+- workflow 可以在运行时生成临时 env 文件（例如 `.runtime/production.env`），用于传递 `docker compose --env-file` 所需参数。
+- 临时 env 文件内容必须来自 GitHub Environment Secrets / Variables，且不得提交到仓库。
 
 ## production-deploy.yml（低权限 + 人工审批）
 

@@ -3,12 +3,12 @@ set -euo pipefail
 
 SERVERS="${1:-}"
 ROOT_SSH_KEY="${2:-}"
-DEPLOY_SSH_PUBLIC_KEY="${3:-}"
+DEPLOY_SSH_KEY="${3:-}"
 ENV_NAME="${4:-}"
 REPO_NAME="${5:-ai-project-template}"
 
-if [[ -z "$SERVERS" || -z "$ROOT_SSH_KEY" || -z "$DEPLOY_SSH_PUBLIC_KEY" || -z "$ENV_NAME" ]]; then
-  echo "Usage: deploy/bootstrap_server.sh <servers_csv> <root_ssh_key> <deploy_ssh_public_key> <env_name> [repo_name]"
+if [[ -z "$SERVERS" || -z "$ROOT_SSH_KEY" || -z "$DEPLOY_SSH_KEY" || -z "$ENV_NAME" ]]; then
+  echo "Usage: deploy/bootstrap_server.sh <servers_csv> <root_ssh_key> <deploy_ssh_key> <env_name> [repo_name]"
   exit 1
 fi
 
@@ -23,7 +23,7 @@ trap 'rm -f "$KEY_FILE"' EXIT
 printf '%s\n' "$ROOT_SSH_KEY" > "$KEY_FILE"
 chmod 600 "$KEY_FILE"
 
-DEPLOY_PUB_KEY="$DEPLOY_SSH_PUBLIC_KEY"
+DEPLOY_PUB_KEY="$DEPLOY_SSH_KEY"
 APP_DIR="/opt/apps/${REPO_NAME}"
 
 IFS=',' read -r -a SERVER_ARRAY <<< "$SERVERS"

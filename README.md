@@ -26,6 +26,15 @@
   - `main` 触发
   - 依赖 `environment: production` 的人工审批保护
 
+
+## workflow 是否需要 ENV 文件
+
+结论：**需要，但只需要运行时临时 env 文件，不需要在仓库中维护 `.env` 文件**。
+
+- `production-deploy` workflow 会在 GitHub Actions Runner 中把 Secrets 写入临时文件（`.runtime/production.env`）后再执行 `deploy/deploy.sh`。
+- 该临时文件仅用于当次作业，仓库中不应提交任何明文 `.env`。
+- 这符合“参数来自 GitHub Secrets / Environment Secrets”的要求。
+
 ## 安全模型
 
 - root key 仅用于 bootstrap，不参与 deploy。
@@ -44,4 +53,4 @@
 
 > 当前阶段：暂时仅保留初始化服务器工作流（bootstrap-server），staging 自动部署工作流已下线。
 
-- `DEPLOY_SSH_PUBLIC_KEY`：Environment Secret，deploy 用户公钥（bootstrap 会写入 authorized_keys）。
+- `DEPLOY_SSH_KEY`：Environment Secret，deploy 用户公钥（bootstrap 会写入 authorized_keys）。
