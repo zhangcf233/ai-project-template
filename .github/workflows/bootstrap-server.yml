@@ -2,25 +2,53 @@ name: bootstrap-server
 
 on:
   workflow_dispatch:
-    inputs:
-      environment:
-        description: 选择目标环境
-        required: true
-        type: choice
-        options:
-          - staging
-          - production
 
 jobs:
   bootstrap:
+    if: ${{ github.ref_name == 'develop' || github.ref_name == 'main' }}
     runs-on: ubuntu-latest
-    environment: ${{ inputs.environment }}
+    environment: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
     steps:
       - uses: actions/checkout@v4
-      - name: Bootstrap servers
+
+      - name: Resolve target environment from branch
+        run: |
+          set -euo pipefail
+          case "${GITHUB_REF_NAME}" in
+            develop)
+              echo "ENV_NAME=staging" >> "$GITHUB_ENV"
+              ;;
+            main)
+              echo "ENV_NAME=production" >> "$GITHUB_ENV"
+              ;;
+            *)
+              echo "::error::仅允许在 develop/main 分支触发 bootstrap，当前分支: ${GITHUB_REF_NAME}"
+              exit 1
+              ;;
+          esac
+
+      - name: Validate required secrets
         env:
-          SERVERS: ${{ secrets.SERVERS }}
+          SERVERS: ${{ vars.SERVERS }}
           ROOT_SSH_KEY: ${{ secrets.ROOT_SSH_KEY }}
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
-          ENV_NAME: ${{ inputs.environment }}
+        run: |
+          set -euo pipefail
+          missing=()
+
+          [[ -n "${SERVERS//[[:space:]]/}" ]] || missing+=("SERVERS")
+          [[ -n "${ROOT_SSH_KEY//[[:space:]]/}" ]] || missing+=("ROOT_SSH_KEY")
+          [[ -n "${DEPLOY_SSH_KEY//[[:space:]]/}" ]] || missing+=("DEPLOY_SSH_KEY")
+
+          if (( ${#missing[@]} > 0 )); then
+            echo "::error::${ENV_NAME} 环境缺少必填配置: ${missing[*]}"
+            echo "请在 GitHub -> Settings -> Environments -> ${ENV_NAME} 中配置：SERVERS 使用 Variables，ROOT_SSH_KEY/DEPLOY_SSH_KEY 使用 Secrets。"
+            exit 1
+          fi
+
+      - name: Bootstrap servers
+        env:
+          SERVERS: ${{ vars.SERVERS }}
+          ROOT_SSH_KEY: ${{ secrets.ROOT_SSH_KEY }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
         run: bash scripts/bootstrap-server.sh "$SERVERS" "$ROOT_SSH_KEY" "$DEPLOY_SSH_KEY" "$ENV_NAME" "${{ github.event.repository.name }}"
