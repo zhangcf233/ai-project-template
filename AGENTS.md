@@ -325,3 +325,15 @@ chore: 调整 docker compose 结构
 * GitOps workflow
 
 形成完整 AI DevOps 闭环。
+
+
+---
+
+# 基础设施极简模型
+
+- 仅允许 `SERVERS` + `ROOT_SSH_KEY`
+- `SERVERS` 仅用于 bootstrap 阶段
+- `ROOT_SSH_KEY` 仅用于 bootstrap 阶段
+- deploy 阶段禁止使用 root key
+- environment 必须严格隔离
+- bootstrap 必须 workflow_dispatch 手动触发

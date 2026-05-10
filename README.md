@@ -1,39 +1,47 @@
 # AI Project Template
 
-这是一个以 AI-first DevOps 为目标的基础模板，当前最小示例为 **Nginx 服务**，通过 GitHub Actions 构建并推送到 GHCR，然后按分支自动/审批部署。
+## 极简基础设施模型
 
-## Branch Strategy
+本仓库采用极简 bootstrap 配置模型，仅使用两个 environment secrets：
 
-- `develop`：staging 环境，push 后自动部署。
-- `main`：production 环境，需通过 GitHub Environment 的人工审批后部署。
+- `SERVERS`：Environment Variable（逗号分隔服务器列表，如 `"10.0.0.1,10.0.0.2"`）
+- `ROOT_SSH_KEY`：Environment Secret，仅用于 bootstrap 的 root SSH 私钥
 
-如需初始化分支：
+> 两个环境 `staging` 与 `production` 必须分别配置独立的 `SERVERS` 和 `ROOT_SSH_KEY`，严禁跨环境复用。
 
-```bash
-git checkout -b develop
-git push -u origin develop
-git checkout main
-git push -u origin main
-```
+## Bootstrap 与 Deploy 边界
 
-## Deployment Flow
+- **Bootstrap（高权限）**：仅人工 `workflow_dispatch` 触发，使用 root key 做初始化。
+- **Deploy（低权限）**：仅使用 `deploy` 用户执行日常自动部署，不允许 root key 参与。
 
-1. push 到 `develop`。
-2. GitHub Actions 构建镜像并推送到 `ghcr.io/<org>/ai-project-template:<sha>`。
-3. staging workflow 调用 `deploy/deploy.sh` 部署到测试服务器。
-4. 合并到 `main` 后触发 production workflow。
-5. production 通过 `environment: production` 执行人工审批后部署。
+## Workflows
 
-## Secrets
+- `.github/workflows/bootstrap-server.yml`
+  - 手动触发
+  - 选择 `staging` / `production`
+  - 从对应 GitHub Environment 读取 `SERVERS` + `ROOT_SSH_KEY`
+  - 执行 `deploy/bootstrap_server.sh` 初始化多台服务器
 
-请在 GitHub 仓库中配置：
+- `.github/workflows/production-deploy.yml`
+  - `main` 触发
+  - 依赖 `environment: production` 的人工审批保护
 
-- `STAGING_ENV_FILE`：完整 `.env` 内容（如 `STAGING_PORT` 等）。
-- `PRODUCTION_ENV_FILE`：完整 `.env` 内容（如 `PROD_PORT` 等）。
+## 安全模型
 
-> 注意：敏感信息必须来自 GitHub Secrets，不要提交到仓库。
+- root key 仅用于 bootstrap，不参与 deploy。
+- deploy 阶段禁止 root SSH。
+- 不删除 volume，不做破坏性清理。
+- 镜像统一 GHCR。
+- 环境变量来自 GitHub Secrets / Environment Secrets，且不使用“完整 env 文本”单密钥模式。
 
-## Rollback
 
-- 部署脚本会在 `.deploy-state/<env>/` 中记录 `current_tag` 与 `previous_tag`。
-- 回滚时执行 `deploy/rollback.sh`，回到上一镜像 tag。
+## 参数配置说明
+
+已移除 `env/*.env.example` 示例文件，统一改为文档维护参数清单：`docs/secrets.md`。
+
+- staging environment 内推荐使用无前缀 secret 命名（如 `SERVER_HOST`、`APP_PORT`）。
+
+
+> 当前阶段：暂时仅保留初始化服务器工作流（bootstrap-server），staging 自动部署工作流已下线。
+
+- `DEPLOY_SSH_PUBLIC_KEY`：Environment Secret，deploy 用户公钥（bootstrap 会写入 authorized_keys）。
