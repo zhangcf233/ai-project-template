@@ -7,8 +7,9 @@ DEPLOY_SSH_KEY="${3:-}"
 ENV_NAME="${4:-}"
 REPO_NAME="${5:-ai-project-template}"
 
-if [[ -z "$SERVERS" || -z "$ROOT_SSH_KEY" || -z "$DEPLOY_SSH_KEY" || -z "$ENV_NAME" ]]; then
+if [[ -z "${SERVERS//[[:space:]]/}" || -z "${ROOT_SSH_KEY//[[:space:]]/}" || -z "${DEPLOY_SSH_KEY//[[:space:]]/}" || -z "${ENV_NAME//[[:space:]]/}" ]]; then
   echo "Usage: deploy/bootstrap_server.sh <servers_csv> <root_ssh_key> <deploy_ssh_key> <env_name> [repo_name]"
+  echo "Error: required inputs are empty. Please verify environment secrets: SERVERS, ROOT_SSH_KEY, DEPLOY_SSH_KEY"
   exit 1
 fi
 
