@@ -20,7 +20,7 @@ jobs:
 
       - name: Validate required secrets
         env:
-          SERVERS: ${{ secrets.SERVERS }}
+          SERVERS: ${{ vars.SERVERS }}
           ROOT_SSH_KEY: ${{ secrets.ROOT_SSH_KEY }}
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
           ENV_NAME: ${{ inputs.environment }}
@@ -33,14 +33,14 @@ jobs:
           [[ -n "${DEPLOY_SSH_KEY//[[:space:]]/}" ]] || missing+=("DEPLOY_SSH_KEY")
 
           if (( ${#missing[@]} > 0 )); then
-            echo "::error::${ENV_NAME} 环境缺少 Secrets: ${missing[*]}"
-            echo "请在 GitHub -> Settings -> Environments -> ${ENV_NAME} 中按字段配置 Secrets（one secret per key）。"
+            echo "::error::${ENV_NAME} 环境缺少必填配置: ${missing[*]}"
+            echo "请在 GitHub -> Settings -> Environments -> ${ENV_NAME} 中配置：SERVERS 使用 Variables，ROOT_SSH_KEY/DEPLOY_SSH_KEY 使用 Secrets。"
             exit 1
           fi
 
       - name: Bootstrap servers
         env:
-          SERVERS: ${{ secrets.SERVERS }}
+          SERVERS: ${{ vars.SERVERS }}
           ROOT_SSH_KEY: ${{ secrets.ROOT_SSH_KEY }}
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
           ENV_NAME: ${{ inputs.environment }}
