@@ -1,0 +1,26 @@
+name: bootstrap-server
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 选择目标环境
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bootstrap servers
+        env:
+          SERVERS: ${{ vars.SERVERS }}
+          ROOT_SSH_KEY: ${{ secrets.ROOT_SSH_KEY }}
+          DEPLOY_SSH_PUBLIC_KEY: ${{ secrets.DEPLOY_SSH_PUBLIC_KEY }}
+          ENV_NAME: ${{ inputs.environment }}
+        run: bash deploy/bootstrap_server.sh "$SERVERS" "$ROOT_SSH_KEY" "$DEPLOY_SSH_PUBLIC_KEY" "$ENV_NAME" "${{ github.event.repository.name }}"
